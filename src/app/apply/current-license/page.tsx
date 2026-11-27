@@ -19,6 +19,7 @@ import {
   FileKey2,
   ArrowUpRight,
   Info,
+  RefreshCw,
 } from 'lucide-react';
 
 type TargetProduct = 'nLO' | 'nPLH';
@@ -43,6 +44,7 @@ export default function CurrentLicenseRequestPage() {
 
   // 2. 시트 조회 및 추천 검색
   const [sheetRows, setSheetRows] = useState<IrisSheetRow[]>([]);
+  const [isSheetReady, setIsSheetReady] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [selectedRow, setSelectedRow] = useState<IrisSheetRow | null>(null);
@@ -58,11 +60,15 @@ export default function CurrentLicenseRequestPage() {
     const token = process.env.NEXT_PUBLIC_APPS_SCRIPT_TOKEN;
     if (!url) return;
 
+    setIsSheetReady(false);
     fetchJsonp<{ rows?: IrisSheetRow[] }>(`${url}?type=iris_sheet&token=${token}`)
       .then((res) => {
         if (res.rows) setSheetRows(res.rows);
       })
-      .catch(() => {});
+      .catch(() => {})
+      .finally(() => {
+        setIsSheetReady(true);
+      });
   }, []);
 
   const filteredSuggestions = useMemo(() => {
@@ -222,9 +228,12 @@ export default function CurrentLicenseRequestPage() {
         </Link>
 
         <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 sm:p-8">
-          <h1 className="text-xl sm:text-2xl font-bold text-slate-900 mb-2">
-            4. nLO, nPLH 현재 버전 라이센스 파일 요청
+          <h1 className="text-xl sm:text-2xl font-bold text-slate-900 mb-1">
+            4. 현재 버전 라이센스 파일 요청
           </h1>
+          <p className="text-xs font-medium text-blue-700 mb-2">
+            지원 제품: nLO, nPLH
+          </p>
           <p className="text-sm text-slate-600 mb-6">
             제품 선택 후 고객명, Core SN 또는 Cache License ID로 검색하시면 현재 IRIS 전환 여부 및 라이센스 파일 링크를 즉시 확인하실 수 있습니다.
           </p>
@@ -259,9 +268,22 @@ export default function CurrentLicenseRequestPage() {
             {/* 2. 시트 통합 검색 */}
             {product && (
               <div className="border-t border-slate-200 pt-5">
-                <label className="block text-sm font-semibold text-slate-800 mb-1.5">
-                  2. 고객 및 라이센스 검색 (고객명 / Core SN / Cache License ID) <span className="text-red-500">*</span>
-                </label>
+                <div className="flex items-center justify-between gap-2 mb-1.5">
+                  <label className="block text-sm font-semibold text-slate-800">
+                    2. 고객 및 라이센스 검색 (고객명 / Core SN / Cache License ID) <span className="text-red-500">*</span>
+                  </label>
+                  {isSheetReady ? (
+                    <span className="shrink-0 inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                      <CheckCircle2 className="w-3.5 h-3.5" />
+                      검색 준비 완료
+                    </span>
+                  ) : (
+                    <span className="shrink-0 inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200">
+                      <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                      검색 준비중...
+                    </span>
+                  )}
+                </div>
                 <p className="text-xs text-slate-500 mb-2.5">
                   검색 후 아래 추천 목록에서 해당 병원을 클릭해주세요.
                 </p>
@@ -276,7 +298,11 @@ export default function CurrentLicenseRequestPage() {
                       setSearchQuery(e.target.value);
                       setShowSuggestions(true);
                     }}
-                    placeholder="고객명, Core SN 또는 Cache License ID 입력..."
+                    placeholder={
+                      isSheetReady
+                        ? '고객명, Core SN 또는 Cache License ID 입력...'
+                        : '데이터를 불러오는 중입니다. 잠시만 기다려주세요...'
+                    }
                     className="w-full pl-10 pr-4 py-2.5 text-sm border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
 

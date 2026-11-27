@@ -31,13 +31,20 @@ export default function HomePage() {
                 href={item.href!}
                 className="flex items-center justify-between w-full bg-white hover:bg-blue-50 border-2 border-blue-600 rounded-xl p-5 shadow-sm transition group"
               >
-                <div className="flex items-center gap-3">
-                  <FileText className="w-5 h-5 text-blue-600" />
-                  <span className="font-semibold text-slate-900 group-hover:text-blue-700">
-                    {item.title}
-                  </span>
+                <div className="flex items-start gap-3">
+                  <FileText className="w-5 h-5 text-blue-600 shrink-0 mt-0.5" />
+                  <div>
+                    <span className="block font-semibold text-slate-900 group-hover:text-blue-700">
+                      {item.title}
+                    </span>
+                    {item.supportedProducts && (
+                      <span className="block text-xs text-slate-500 mt-1">
+                        지원 제품: {item.supportedProducts}
+                      </span>
+                    )}
+                  </div>
                 </div>
-                <ArrowRight className="w-5 h-5 text-blue-600 group-hover:translate-x-1 transition-transform" />
+                <ArrowRight className="w-5 h-5 text-blue-600 shrink-0 group-hover:translate-x-1 transition-transform" />
               </Link>
             ) : (
               <button

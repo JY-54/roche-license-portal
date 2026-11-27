@@ -52,6 +52,7 @@ export default function IrisUpgradePage() {
 
   // 시트 데이터 및 통합 검색어
   const [sheetRows, setSheetRows] = useState<IrisSheetRow[]>([]);
+  const [isSheetReady, setIsSheetReady] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [showSuggestions, setShowSuggestions] = useState(false);
 
@@ -76,36 +77,40 @@ export default function IrisUpgradePage() {
 
   // 4번 화면에서 "Yes (IRIS 업그레이드 신청)" 선택 시 전달된 고객 정보 자동 채움
   useEffect(() => {
-    if (typeof window === "undefined") return;
+    if (typeof window === 'undefined') return;
     const params = new URLSearchParams(window.location.search);
-    const qProduct = params.get("product");
-    const qCustomer = params.get("customer");
-    const qCoreSn = params.get("coreSn");
-    const qCacheId = params.get("cacheId");
-    const qCores = params.get("cores");
-    if (qProduct === "nLO" || qProduct === "nPLH") {
+    const qProduct = params.get('product');
+    const qCustomer = params.get('customer');
+    const qCoreSn = params.get('coreSn');
+    const qCacheId = params.get('cacheId');
+    const qCores = params.get('cores');
+    if (qProduct === 'nLO' || qProduct === 'nPLH') {
       setProduct(qProduct);
       if (qCustomer) setCustomerName(qCustomer);
       if (qCoreSn) setCoreSn(qCoreSn);
       if (qCacheId) setCacheLicenseId(qCacheId);
       if (qCores) setServerCores(qCores);
       if (qCustomer || qCoreSn || qCacheId) {
-        setSearchQuery([qCustomer, qCoreSn, qCacheId].filter(Boolean).join(" | "));
+        setSearchQuery([qCustomer, qCoreSn, qCacheId].filter(Boolean).join(' | '));
       }
     }
   }, []);
 
-  // Sheet1 (B, E~H 컬럼) 로드
+  // Sheet1 (B, E~I 컬럼) 로드
   useEffect(() => {
     const url = process.env.NEXT_PUBLIC_APPS_SCRIPT_URL;
     const token = process.env.NEXT_PUBLIC_APPS_SCRIPT_TOKEN;
     if (!url) return;
 
+    setIsSheetReady(false);
     fetchJsonp<{ rows?: IrisSheetRow[] }>(`${url}?type=iris_sheet&token=${token}`)
       .then((res) => {
         if (res.rows) setSheetRows(res.rows);
       })
-      .catch(() => {});
+      .catch(() => {})
+      .finally(() => {
+        setIsSheetReady(true);
+      });
   }, []);
 
   // 선택된 제품(nLO / nPLH)에 해당하는 시트 행 필터 + E, F, G 통합 검색
@@ -342,9 +347,12 @@ export default function IrisUpgradePage() {
         </Link>
 
         <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 sm:p-8">
-          <h1 className="text-xl sm:text-2xl font-bold text-slate-900 mb-2">
-            3. nLO, nPLH Cache → IRIS 업그레이드 신청
+          <h1 className="text-xl sm:text-2xl font-bold text-slate-900 mb-1">
+            3. Cache -&gt; IRIS 업그레이드 신청
           </h1>
+          <p className="text-xs font-medium text-blue-700 mb-2">
+            지원 제품: nLO, nPLH
+          </p>
           <p className="text-sm text-slate-600 mb-6">
             제품 선택 후 고객명, Core SN 또는 Cache License ID로 검색하시면 기존 정보 자동 입력 및 Google Drive 내 기존 IRIS 라이센스(.key) 보유 여부를 즉시 확인합니다.
           </p>
@@ -380,9 +388,22 @@ export default function IrisUpgradePage() {
               {/* 2. 통합 추천 검색 (고객명 | Core SN | Cache License ID) */}
               {product && (
                 <div className="border-t border-slate-200 pt-5">
-                  <label className="block text-sm font-semibold text-slate-800 mb-1.5">
-                    2. 기존 라이센스 통합 검색 (고객명 / Core SN / Cache License ID)
-                  </label>
+                  <div className="flex items-center justify-between gap-2 mb-1.5">
+                    <label className="block text-sm font-semibold text-slate-800">
+                      2. 기존 라이센스 통합 검색 (고객명 / Core SN / Cache License ID)
+                    </label>
+                    {isSheetReady ? (
+                      <span className="shrink-0 inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                        <CheckCircle2 className="w-3.5 h-3.5" />
+                        검색 준비 완료
+                      </span>
+                    ) : (
+                      <span className="shrink-0 inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200">
+                        <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                        검색 준비중...
+                      </span>
+                    )}
+                  </div>
                   <p className="text-xs text-slate-500 mb-2.5">
                     고객명(한글/영문), Core SN, Cache License ID 중 아무 항목이나 입력하면 추천 목록이 표시됩니다.
                   </p>
@@ -397,7 +418,11 @@ export default function IrisUpgradePage() {
                         setSearchQuery(e.target.value);
                         setShowSuggestions(true);
                       }}
-                      placeholder="예: 서울대병원, 1234, 1234567 등 입력..."
+                      placeholder={
+                        isSheetReady
+                          ? '예: 서울대병원, 1234, 1234567 등 입력...'
+                          : '데이터를 불러오는 중입니다. 잠시만 기다려주세요...'
+                      }
                       className="w-full pl-10 pr-4 py-2.5 text-sm border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
 
@@ -511,7 +536,7 @@ export default function IrisUpgradePage() {
                               <span>
                                 다른 검색결과 보기 ({secondaryDriveMatches.length}건)
                               </span>
-                              <span>{showOtherDriveMatches ? "접기 ▲" : "펼치기 ▼"}</span>
+                              <span>{showOtherDriveMatches ? '접기 ▲' : '펼치기 ▼'}</span>
                             </button>
 
                             {showOtherDriveMatches && (
@@ -681,7 +706,7 @@ export default function IrisUpgradePage() {
                 <div className="grid grid-cols-3 gap-2">
                   <span className="text-slate-500">신청 유형</span>
                   <span className="col-span-2 font-semibold text-blue-700">
-                    3. Cache → IRIS 업그레이드 신청
+                    3. Cache -&gt; IRIS 업그레이드 신청
                   </span>
 
                   <span className="text-slate-500">제품명</span>

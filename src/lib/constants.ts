@@ -39,9 +39,37 @@ export const PRODUCT_RULES: Record<
 };
 
 export const REQUEST_TYPES = [
-  { id: 1, title: '1. 신규 라이센스 신청', active: true, href: '/apply/new' },
-  { id: 2, title: '2. 라이센스 변경 (고객명/버전 등)', active: true, href: '/apply/change' },
-  { id: 3, title: '3. nLO, nPLH Cache → IRIS 업그레이드 신청', active: true, href: '/apply/upgrade' },
-  { id: 4, title: '4. nLO, nPLH 현재 버전 라이센스 파일 요청', active: true, href: '/apply/current-license' },
-  { id: 5, title: '5. 기타: 라이센스 관리자에게 직접 문의하기', active: false },
+  {
+    id: 1,
+    title: '1. 신규 라이센스 신청',
+    supportedProducts: 'nLO, nPO, nPLH, nDP, nQP, nM, nA',
+    active: true,
+    href: '/apply/new',
+  },
+  {
+    id: 2,
+    title: '2. 라이센스 변경 (고객명/버전 등)',
+    supportedProducts: 'nLO, nPO, nPLH, nDP, nQP, nM, nA',
+    active: true,
+    href: '/apply/change',
+  },
+  {
+    id: 3,
+    title: '3. Cache -> IRIS 업그레이드 신청',
+    supportedProducts: 'nLO, nPLH',
+    active: true,
+    href: '/apply/upgrade',
+  },
+  {
+    id: 4,
+    title: '4. 현재 버전 라이센스 파일 요청',
+    supportedProducts: 'nLO, nPLH',
+    active: true,
+    href: '/apply/current-license',
+  },
+  {
+    id: 5,
+    title: '5. 기타: 라이센스 관리자에게 직접 문의하기',
+    active: false,
+  },
 ];
