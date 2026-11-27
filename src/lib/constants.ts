@@ -69,7 +69,7 @@ export const REQUEST_TYPES = [
   },
   {
     id: 5,
-    title: '5. 기타: 라이센스 관리자에게 직접 문의하기',
+    title: '5. 라이센스 관리자에게 문의하기',
     active: true,
     href: '/apply/inquiry',
   },
