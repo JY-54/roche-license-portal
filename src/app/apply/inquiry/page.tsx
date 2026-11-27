@@ -1,5 +1,6 @@
 'use client';
 
+import { fetchJsonp } from '@/lib/jsonp';
 import { useState } from 'react';
 import Link from 'next/link';
 import { ALLOWED_EMAIL_DOMAINS, ADMIN_CHAT_URL } from '@/lib/constants';
@@ -113,24 +114,52 @@ export default function DirectInquiryPage() {
 
     setIsSubmitting(true);
     try {
-      await fetch(appsScriptUrl, {
-        method: 'POST',
-        mode: 'no-cors',
-        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-        body: JSON.stringify({
-          type: 'qna',
-          token: appsScriptToken,
+      const CHUNK_SIZE = 3500; // URL 길이 제한 안전 기준 (약 3.5KB씩 분할 전송)
+      const fileMeta: { uploadId: string; name: string; mimeType: string; totalChunks: number }[] = [];
+
+      for (const file of files) {
+        const uploadId = `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+        const totalChunks = Math.ceil(file.base64.length / CHUNK_SIZE);
+
+        for (let i = 0; i < totalChunks; i++) {
+          const chunk = file.base64.slice(i * CHUNK_SIZE, (i + 1) * CHUNK_SIZE);
+          const chunkRes = await fetchJsonp<{ success?: boolean; error?: string }>(
+            `${appsScriptUrl}?type=qna_chunk&token=${appsScriptToken}&uploadId=${uploadId}&index=${i}&chunk=${encodeURIComponent(chunk)}`
+          );
+          if (!chunkRes.success) {
+            throw new Error(chunkRes.error || '첨부파일 업로드 실패');
+          }
+        }
+
+        fileMeta.push({
+          uploadId,
+          name: file.name,
+          mimeType: file.mimeType,
+          totalChunks,
+        });
+      }
+
+      const encodedData = encodeURIComponent(
+        JSON.stringify({
           category,
           content: content.trim(),
           email: trimmedEmail,
-          files,
-        }),
-      });
+          fileMeta,
+        })
+      );
+
+      const res = await fetchJsonp<{ success?: boolean; error?: string }>(
+        `${appsScriptUrl}?type=qna&token=${appsScriptToken}&data=${encodedData}`
+      );
+      if (!res.success) {
+        setErrorMsg(res.error || '문의 접수 중 오류가 발생했습니다.');
+        return;
+      }
 
       setIsSubmitted(true);
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch {
-      setErrorMsg('네트워크 오류가 발생했습니다. 파일 용량을 줄이거나 다시 시도해주세요.');
+      setErrorMsg('전송 중 오류가 발생했습니다. 파일 용량을 줄이거나 다시 시도해주세요.');
     } finally {
       setIsSubmitting(false);
     }

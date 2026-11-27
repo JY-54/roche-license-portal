@@ -1,5 +1,6 @@
 'use client';
 
+import {fetchJsonp} from '@/lib/jsonp';
 import { useState } from 'react';
 import Link from 'next/link';
 import { REQUEST_TYPES, ADMIN_CHAT_URL, ALLOWED_EMAIL_DOMAINS } from '@/lib/constants';
@@ -57,27 +58,29 @@ export default function HomePage() {
     }
 
     setIsSendingFeedback(true);
-    setIsSendingFeedback(true);
     try {
-      await fetch(appsScriptUrl, {
-        method: 'POST',
-        mode: 'no-cors',
-        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-        body: JSON.stringify({
-          type: 'feedback',
-          token: appsScriptToken,
+      const encodedData = encodeURIComponent(
+        JSON.stringify({
           content: feedbackContent.trim(),
           email: trimmedEmail,
-        }),
-      });
+        })
+      );
+      const res = await fetchJsonp<{ success?: boolean; error?: string }>(
+        `${appsScriptUrl}?type=feedback&token=${appsScriptToken}&data=${encodedData}`
+      );
+      if (!res.success) {
+        setFeedbackError(res.error || '피드백 전송 중 오류가 발생했습니다.');
+        return;
+      }
       setFeedbackSubmitted(true);
       setFeedbackContent('');
       setFeedbackEmail('');
     } catch {
-      setFeedbackError('네트워크 오류가 발생했습니다. 잠시 후 다시 시도해주세요.');
+      setFeedbackError('전송 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.');
     } finally {
       setIsSendingFeedback(false);
     }
+  };
 
   return (
     <main className="min-h-screen bg-slate-50 flex flex-col justify-between py-10 px-4">
