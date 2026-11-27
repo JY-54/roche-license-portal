@@ -57,9 +57,11 @@ export default function HomePage() {
     }
 
     setIsSendingFeedback(true);
+    setIsSendingFeedback(true);
     try {
-      const res = await fetch(appsScriptUrl, {
+      await fetch(appsScriptUrl, {
         method: 'POST',
+        mode: 'no-cors',
         headers: { 'Content-Type': 'text/plain;charset=utf-8' },
         body: JSON.stringify({
           type: 'feedback',
@@ -68,11 +70,6 @@ export default function HomePage() {
           email: trimmedEmail,
         }),
       });
-      const data = await res.json();
-      if (!data.success) {
-        setFeedbackError(data.error || '피드백 전송 중 오류가 발생했습니다.');
-        return;
-      }
       setFeedbackSubmitted(true);
       setFeedbackContent('');
       setFeedbackEmail('');
@@ -81,7 +78,6 @@ export default function HomePage() {
     } finally {
       setIsSendingFeedback(false);
     }
-  };
 
   return (
     <main className="min-h-screen bg-slate-50 flex flex-col justify-between py-10 px-4">

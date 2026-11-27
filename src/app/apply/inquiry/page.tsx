@@ -113,8 +113,9 @@ export default function DirectInquiryPage() {
 
     setIsSubmitting(true);
     try {
-      const res = await fetch(appsScriptUrl, {
+      await fetch(appsScriptUrl, {
         method: 'POST',
+        mode: 'no-cors',
         headers: { 'Content-Type': 'text/plain;charset=utf-8' },
         body: JSON.stringify({
           type: 'qna',
@@ -125,11 +126,6 @@ export default function DirectInquiryPage() {
           files,
         }),
       });
-      const data = await res.json();
-      if (!data.success) {
-        setErrorMsg(data.error || '문의 접수 중 오류가 발생했습니다.');
-        return;
-      }
 
       setIsSubmitted(true);
       window.scrollTo({ top: 0, behavior: 'smooth' });
