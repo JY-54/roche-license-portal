@@ -18,6 +18,7 @@ import {
   Send,
   FileEdit,
   ShieldAlert,
+  RefreshCw,
 } from 'lucide-react';
 
 interface SheetRow {
@@ -63,6 +64,7 @@ export default function ChangeLicensePage() {
   const [distributorCode, setDistributorCode] = useState('');
   const [distributorName, setDistributorName] = useState('');
   const [sheetRows, setSheetRows] = useState<SheetRow[]>([]);
+  const [isSheetReady, setIsSheetReady] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
 
   // 변경 항목 선택 & 기존/신규 값
@@ -93,11 +95,15 @@ export default function ChangeLicensePage() {
     const url = process.env.NEXT_PUBLIC_APPS_SCRIPT_URL;
     const token = process.env.NEXT_PUBLIC_APPS_SCRIPT_TOKEN;
     if (!url) return;
+    setIsSheetReady(false);
     fetchJsonp<{ rows?: SheetRow[] }>(`${url}?type=sheets&token=${token}`)
       .then((res) => {
         if (res.rows) setSheetRows(res.rows);
       })
-      .catch(() => {});
+      .catch(() => {})
+      .finally(() => {
+        setIsSheetReady(true);
+      });
   }, []);
 
   const filteredSuggestions = useMemo(() => {
@@ -323,12 +329,15 @@ export default function ChangeLicensePage() {
         </Link>
 
         <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 sm:p-8">
-          <div className="flex items-center gap-2.5 mb-2">
+          <div className="flex items-center gap-2.5 mb-1">
             <FileEdit className="w-6 h-6 text-blue-600" />
             <h1 className="text-xl sm:text-2xl font-bold text-slate-900">
-              2. 라이센스 정보 변경 요청
+              2. 라이센스 변경 (고객명/버전 등)
             </h1>
           </div>
+          <p className="text-xs font-medium text-blue-700 mb-2">
+            지원 제품: nLO, nPO, nPLH, nDP, nQP, nM, nA
+          </p>
           <p className="text-sm text-slate-600 mb-6">
             제품을 선택한 뒤 변경이 필요한 항목만 체크하여 기존 정보와 신규 정보를 입력해주세요.
           </p>
@@ -365,9 +374,22 @@ export default function ChangeLicensePage() {
 
               {/* 2. 대상 고객 정보 */}
               <div className="border-t border-slate-200 pt-5">
-                <label className="block text-sm font-semibold text-slate-800 mb-2">
-                  2. 대상 고객(병원/기관) 정보 <span className="text-red-500">*</span>
-                </label>
+                <div className="flex items-center justify-between gap-2 mb-2">
+                  <label className="block text-sm font-semibold text-slate-800">
+                    2. 대상 고객(병원/기관) 정보 <span className="text-red-500">*</span>
+                  </label>
+                  {isSheetReady ? (
+                    <span className="shrink-0 inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                      <CheckCircle2 className="w-3.5 h-3.5" />
+                      검색 준비 완료
+                    </span>
+                  ) : (
+                    <span className="shrink-0 inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200">
+                      <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                      검색 준비중...
+                    </span>
+                  )}
+                </div>
 
                 <div className="relative mb-3">
                   <div className="relative">
@@ -380,7 +402,11 @@ export default function ChangeLicensePage() {
                         setCustomerSearch(e.target.value);
                         setShowSuggestions(true);
                       }}
-                      placeholder="병원명 또는 고객코드 검색 (선택 시 자동 입력)"
+                      placeholder={
+                        isSheetReady
+                          ? '병원명 또는 고객코드 검색 (선택 시 자동 입력)'
+                          : '데이터를 불러오는 중입니다. 잠시만 기다려주세요...'
+                      }
                       className="w-full pl-10 pr-4 py-2.5 text-sm border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
                   </div>
@@ -775,7 +801,9 @@ export default function ChangeLicensePage() {
                 </h2>
                 <div className="grid grid-cols-3 gap-2">
                   <span className="text-slate-500">신청 유형</span>
-                  <span className="col-span-2 font-semibold text-blue-700">2. 라이센스 정보 변경</span>
+                  <span className="col-span-2 font-semibold text-blue-700">
+                    2. 라이센스 변경 (고객명/버전 등)
+                  </span>
 
                   <span className="text-slate-500">대상 제품</span>
                   <span className="col-span-2 font-semibold text-slate-900">

@@ -11,7 +11,7 @@ import {
 import { fetchMondayItems, type MondayItemParsed } from '@/lib/monday';
 import { fetchJsonp } from '@/lib/jsonp';
 import { fetchCustomerSheetData, type SheetRowParsed } from '@/lib/google-sheets';
-import { CheckCircle2, MessageCircle, Search, ArrowLeft } from 'lucide-react';
+import { CheckCircle2, MessageCircle, Search, ArrowLeft, RefreshCw } from 'lucide-react';
 import Link from 'next/link';
 
 const PRODUCT_SIZE_OPTIONS: Record<string, string[]> = {
@@ -43,6 +43,8 @@ export default function NewLicenseApplyPage() {
   const [mondayItems, setMondayItems] = useState<MondayItemParsed[]>([]);
   const [sheetRows, setSheetRows] = useState<SheetRowParsed[]>([]);
   const [loadingData, setLoadingData] = useState(false);
+  const [mondayLoaded, setMondayLoaded] = useState(false);
+  const [sheetLoaded, setSheetLoaded] = useState(false);
 
   const [searchDistCode, setSearchDistCode] = useState('');
   const [searchDistName, setSearchDistName] = useState('');
@@ -81,14 +83,24 @@ export default function NewLicenseApplyPage() {
   }, [product, subProductName, hasMondayInfo]);
 
   useEffect(() => {
-    if (hasMondayInfo === 'Yes' && mondayItems.length === 0) {
+    if (hasMondayInfo === 'Yes' && !mondayLoaded) {
       setLoadingData(true);
-      fetchMondayItems().then((items) => setMondayItems(items)).finally(() => setLoadingData(false));
-    } else if (hasMondayInfo === 'No' && sheetRows.length === 0) {
+      fetchMondayItems()
+        .then((items) => setMondayItems(items))
+        .finally(() => {
+          setLoadingData(false);
+          setMondayLoaded(true);
+        });
+    } else if (hasMondayInfo === 'No' && !sheetLoaded) {
       setLoadingData(true);
-      fetchCustomerSheetData().then((rows) => setSheetRows(rows)).finally(() => setLoadingData(false));
+      fetchCustomerSheetData()
+        .then((rows) => setSheetRows(rows))
+        .finally(() => {
+          setLoadingData(false);
+          setSheetLoaded(true);
+        });
     }
-  }, [hasMondayInfo, mondayItems.length, sheetRows.length]);
+  }, [hasMondayInfo, mondayLoaded, sheetLoaded]);
 
   const handleEnglishNameChange = (val: string) => {
     const sanitized = val.replace(/[^a-zA-Z0-9\s]/g, '');
@@ -213,12 +225,6 @@ export default function NewLicenseApplyPage() {
       setIsSubmitted(true);
       setIsSubmitting(false);
       return;
-
-      if (!res.ok) {
-        alert(result.error || '제출에 실패했습니다.');
-      } else {
-        setIsSubmitted(true);
-      }
     } catch {
       alert('네트워크 오류가 발생했습니다.');
     } finally {
@@ -358,7 +364,10 @@ export default function NewLicenseApplyPage() {
         <Link href="/" className="inline-flex items-center gap-1 text-sm text-slate-500 hover:text-slate-800 mb-4">
           <ArrowLeft className="w-4 h-4" /> 메인으로
         </Link>
-        <h1 className="text-2xl font-bold text-slate-900 mb-6">신규 라이센스 신청</h1>
+        <h1 className="text-2xl font-bold text-slate-900 mb-1">1. 신규 라이센스 신청</h1>
+        <p className="text-xs font-medium text-blue-700 mb-6">
+          지원 제품: nLO, nPO, nPLH, nDP, nQP, nM, nA
+        </p>
 
         <section className="mb-6">
           <label className="block text-sm font-bold text-slate-800 mb-2">
@@ -471,9 +480,21 @@ export default function NewLicenseApplyPage() {
 
         {hasMondayInfo === 'Yes' && (
           <div className="space-y-5 border-t border-slate-200 pt-6">
-            <div className="bg-slate-100 px-4 py-2.5 rounded-lg text-xs text-slate-700">
-              먼데이닷컴 <strong>Pending</strong> 그룹 항목을 실시간으로 검색합니다.
-              {loadingData && ' (데이터 불러오는 중...)'}
+            <div className="bg-slate-100 px-4 py-2.5 rounded-lg text-xs text-slate-700 flex items-center justify-between gap-2">
+              <span>
+                먼데이닷컴 <strong>Pending</strong> 그룹 항목을 실시간으로 검색합니다.
+              </span>
+              {!loadingData && mondayLoaded ? (
+                <span className="shrink-0 inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                  <CheckCircle2 className="w-3.5 h-3.5" />
+                  검색 준비 완료
+                </span>
+              ) : (
+                <span className="shrink-0 inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200">
+                  <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                  검색 준비중...
+                </span>
+              )}
             </div>
 
             <div className="relative">
@@ -484,7 +505,11 @@ export default function NewLicenseApplyPage() {
                 <Search className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
                 <input
                   type="text"
-                  placeholder="병원/고객명을 입력하세요"
+                  placeholder={
+                    !loadingData && mondayLoaded
+                      ? '병원/고객명을 입력하세요'
+                      : '데이터를 불러오는 중입니다. 잠시만 기다려주세요...'
+                  }
                   value={mondayCustSearch}
                   onChange={(e) => setMondayCustSearch(e.target.value)}
                   className="w-full pl-9 pr-4 py-2 border border-slate-300 rounded-lg text-sm"
@@ -493,7 +518,13 @@ export default function NewLicenseApplyPage() {
               {mondayCustSearch && mondayCustSearch !== customerName && (
                 <ul className="mt-1 border border-slate-200 rounded-lg bg-white shadow-md max-h-48 overflow-y-auto divide-y">
                   {mondayItems
-                    .filter((i) => { const q = mondayCustSearch.trim().toLowerCase(); return (i.customerNameKo || "").toLowerCase().includes(q) || (i.customerNameEn || "").toLowerCase().includes(q); })
+                    .filter((i) => {
+                      const q = mondayCustSearch.trim().toLowerCase();
+                      return (
+                        (i.customerNameKo || '').toLowerCase().includes(q) ||
+                        (i.customerNameEn || '').toLowerCase().includes(q)
+                      );
+                    })
                     .map((item) => (
                       <li
                         key={item.id}
@@ -522,7 +553,9 @@ export default function NewLicenseApplyPage() {
                 <ul className="mt-1 border border-slate-200 rounded-lg bg-white shadow-md max-h-48 overflow-y-auto divide-y">
                   {mondayItems
                     .filter((i) =>
-                      (i.distributorName || "").toLowerCase().includes(mondayDistSearch.trim().toLowerCase())
+                      (i.distributorName || '')
+                        .toLowerCase()
+                        .includes(mondayDistSearch.trim().toLowerCase())
                     )
                     .map((item) => (
                       <li
@@ -647,9 +680,21 @@ export default function NewLicenseApplyPage() {
 
         {hasMondayInfo === 'No' && (
           <div className="space-y-5 border-t border-slate-200 pt-6">
-            <div className="bg-amber-50 px-4 py-2.5 rounded-lg text-xs text-amber-800 border border-amber-200">
-              모든 대리점/고객 항목은 입력 후 나타나는 <strong>추천 검색어를 반드시 클릭</strong>하여 선택해야 입력이 완료됩니다.
-              {loadingData && ' (데이터 불러오는 중...)'}
+            <div className="bg-amber-50 px-4 py-2.5 rounded-lg text-xs text-amber-800 border border-amber-200 flex items-center justify-between gap-2">
+              <span>
+                모든 대리점/고객 항목은 입력 후 나타나는 <strong>추천 검색어를 반드시 클릭</strong>하여 선택해야 입력이 완료됩니다.
+              </span>
+              {!loadingData && sheetLoaded ? (
+                <span className="shrink-0 inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                  <CheckCircle2 className="w-3.5 h-3.5" />
+                  검색 준비 완료
+                </span>
+              ) : (
+                <span className="shrink-0 inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-white text-amber-700 border border-amber-300">
+                  <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                  검색 준비중...
+                </span>
+              )}
             </div>
 
             <div>
@@ -831,7 +876,7 @@ export default function NewLicenseApplyPage() {
               />
               {billingType === '데모' && (
                 <p className="text-xs text-blue-600 mt-1">
-                  * 데모 선택 시 월금액은 0으로 자동 입력됩니다.
+                  - 데모 선택 시 월금액은 0으로 자동 입력됩니다.
                 </p>
               )}
             </div>
@@ -934,15 +979,6 @@ export default function NewLicenseApplyPage() {
         <FooterContact />
       </div>
     </main>
-  );
-}
-
-function SummaryRow({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="flex justify-between px-4 py-3">
-      <span className="text-slate-500 font-medium">{label}</span>
-      <span className="text-slate-900 font-semibold text-right">{value}</span>
-    </div>
   );
 }
 
